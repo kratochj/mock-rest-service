@@ -1,7 +1,11 @@
-FROM openjdk:8-jdk-alpine
-VOLUME /tmp
-ARG DEPENDENCY=target/dependency
-COPY ${DEPENDENCY}/BOOT-INF/lib /app/lib
-COPY ${DEPENDENCY}/META-INF /app/META-INF
-COPY ${DEPENDENCY}/BOOT-INF/classes /app
+FROM maven:3-jdk-8 AS MAVEN_BUILD
+COPY pom.xml /tmp/
+COPY src /tmp/src/
+WORKDIR /tmp/
+RUN mvn package
+
+FROM openjdk:8-jdk-alpine AS RUNTIME
+COPY --from=MAVEN_BUILD /tmp/target/dependency/BOOT-INF/lib /app/lib
+COPY --from=MAVEN_BUILD /tmp/target/dependency/META-INF /app/META-INF
+COPY --from=MAVEN_BUILD /tmp/target/dependency/BOOT-INF/classes /app
 ENTRYPOINT ["java","-cp","app:app/lib/*","com.jetbrains.kratochvil.ns.api.Application"]
